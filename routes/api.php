@@ -11,3 +11,4 @@ use Illuminate\Support\Facades\Route;
 Route::get('/invoices', [InvoiceController::class, 'getAll']);
 Route::post('/invoices/create', [InvoiceController::class, 'create']);
 Route::patch('/invoices/{invoice}/update', [InvoiceController::class, 'update']);
+Route::delete('/invoices/{invoice}/delete', [InvoiceController::class, 'delete']);

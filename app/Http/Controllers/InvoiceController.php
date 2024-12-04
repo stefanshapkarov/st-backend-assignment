@@ -96,6 +96,17 @@ class InvoiceController extends Controller
         }
     }
 
+    public function delete(Invoice $invoice)
+    {
+        $invoice->items()->detach();
+
+        $invoice->delete();
+
+        return response()->json([
+            'message' => 'Invoice deleted successfully',
+        ]);
+    }
+
     private function attachItems(Invoice $invoice, $items)
     {
         $totalAmount = 0;
