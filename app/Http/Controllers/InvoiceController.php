@@ -9,12 +9,31 @@ use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
 {
-    public function getAll()
+    public function getAll(Request $request)
     {
-        $invoices = Invoice::query()->with('client', 'items')->get();
+        $invoices = Invoice::query()->with('client', 'items');
+
+        if ($request->has('sort')) {
+            $method = $request['sort'];
+
+            if ($method == 'invoice_number') {
+                $invoices->orderBy('invoice_number');
+            } else if ($method == 'due_date') {
+                $invoices->orderBy('due_date');
+            } else if ($method == 'total_amount') {
+                $invoices->orderBy('total_amount');
+            }
+        }
+
+        if ($request->has('search_query')) {
+            $invoices->where('invoice_number', 'like', '%' . $request['search_query'] . '%')
+                ->orWhereHas('client', function ($query) use ($request) {
+                    $query->where('name', 'like', '%' . $request['search_query'] . '%');
+                });
+        }
 
         return response()->json([
-            'invoices' => InvoiceResource::collection($invoices),
+            'invoices' => InvoiceResource::collection($invoices->paginate()),
         ]);
     }
 
