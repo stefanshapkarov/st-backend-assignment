@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
 {
+    public function getAll()
+    {
+        $invoices = Invoice::query()->with('client', 'items')->get();
+
+        return response()->json([
+            'invoices' => InvoiceResource::collection($invoices),
+        ]);
+    }
+
     public function create(Request $request)
     {
         try {
@@ -30,21 +39,7 @@ class InvoiceController extends Controller
                     'due_date' => $validatedData['due_date'],
                 ]);
 
-                $totalAmount = 0;
-
-                foreach ($validatedData['items'] as $item) {
-
-                    $totalAmount += $item['quantity'] * $item['amount'];
-
-                    $invoice->items()->attach($item['id'], [
-                        'quantity' => $item['quantity'],
-                        'amount' => $item['amount']
-                    ]);
-                }
-
-                $invoice->update(['total_amount' => $totalAmount]);
-
-                return $invoice;
+                return $this->attachItems($invoice, $validatedData['items']);
             });
 
             return response()->json([
@@ -58,5 +53,65 @@ class InvoiceController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function update(Request $request, Invoice $invoice)
+    {
+        try {
+            $validatedData = $request->validate([
+                'invoice_number' => 'required',
+                'client_id' => 'required|exists:clients,id',
+                'items' => 'required|array|min:1',
+                'items.*.id' => 'required|exists:items,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.amount' => 'required|numeric|min:0',
+                'due_date' => 'required|date:after_or_equal:today',
+            ]);
+
+            $invoice = DB::transaction(function () use ($validatedData, $invoice) {
+
+                $invoice->items()->detach();
+
+                $invoice = $this->attachItems($invoice, $validatedData['items']);
+
+                $invoice->update([
+                    'invoice_number' => $validatedData['invoice_number'],
+                    'client_id' => $validatedData['client_id'],
+                    'due_date' => $validatedData['due_date'],
+                ]);
+
+                return $invoice;
+            });
+
+            return response()->json([
+                'invoice' => new InvoiceResource($invoice),
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'message' => 'Failed to update invoice',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function attachItems(Invoice $invoice, $items)
+    {
+        $totalAmount = 0;
+
+        foreach ($items as $item) {
+
+            $totalAmount += $item['quantity'] * $item['amount'];
+
+            $invoice->items()->attach($item['id'], [
+                'quantity' => $item['quantity'],
+                'amount' => $item['amount']
+            ]);
+        }
+
+        $invoice->update(['total_amount' => $totalAmount]);
+
+        return $invoice;
     }
 }

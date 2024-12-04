@@ -8,4 +8,6 @@ use Illuminate\Support\Facades\Route;
 //    return $request->user();
 //})->middleware('auth:sanctum');
 
+Route::get('/invoices', [InvoiceController::class, 'getAll']);
 Route::post('/invoices/create', [InvoiceController::class, 'create']);
+Route::patch('/invoices/{invoice}/update', [InvoiceController::class, 'update']);
