@@ -15,6 +15,8 @@ class Invoice extends Model
 
     public function items()
     {
-        return $this->belongsToMany(Item::class, 'items_invoices');
+        return $this->belongsToMany(Item::class, 'items_invoices')
+            ->withPivot('quantity')
+            ->withPivot('amount');
     }
 }

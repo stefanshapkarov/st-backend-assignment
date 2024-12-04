@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('invoice_number')->unique();
             $table->foreignId('client_id');
+            $table->double('total_amount')->nullable();
             $table->date('due_date');
             $table->timestamps();
         });
